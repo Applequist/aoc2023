@@ -12,6 +12,7 @@ fn part_one(input: &str) -> u32 {
         .sum()
 }
 
+// This function should return all digits even when digit words are chained, eg 'twoneighthree'
 fn find_next_digit(input: &str) -> (Option<char>, Option<&str>) {
     if input.is_empty() {
         (None, None)
@@ -79,23 +80,11 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::find_next_digit;
+    use super::parse_line;
 
     #[test]
-    fn test_find_next_digit() {
-        let (d, i) = find_next_digit("one34");
-        assert_eq!(d, Some('1'));
-        println!("{:?} {:?}", d, i);
-        let (n, j) = find_next_digit(i.unwrap());
-        assert_eq!(n, None);
-        println!("{:?} {:?}", n, j);
-        let (d2, i2) = find_next_digit(j.unwrap());
-        assert_eq!(d2, Some('3'));
-        println!("{:?} {:?}", d2, i2);
-        // let (d3, i3) = find_next_digit(i2.unwrap());
-        // assert_eq!(d3, Some(4));
-        // let (d4, i4) = find_next_digit(i3.unwrap());
-        // assert_eq!(d4, None);
-        // assert_eq!(i4, None);
+    fn test_parse_line() {
+        let digits = parse_line("twoneighthree");
+        assert_eq!(digits, &['2', '1', '8', '3']);
     }
 }
