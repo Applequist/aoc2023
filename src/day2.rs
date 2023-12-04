@@ -2,7 +2,7 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{digit1, space1},
-    combinator::{map, map_res},
+    combinator::map_res,
     multi::separated_list1,
     sequence::{pair, separated_pair, tuple},
     IResult, Parser,
@@ -12,6 +12,18 @@ use nom::{
 pub struct Game {
     pub id: u32,
     pub samples: Vec<Sample>,
+}
+
+impl Game {
+    pub fn lower_bound(&self) -> Sample {
+        self.samples.iter().fold(Sample::new(0, 0, 0), |max, s| {
+            Sample::new(
+                max.red.max(s.red),
+                max.green.max(s.green),
+                max.blue.max(s.blue),
+            )
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -28,6 +40,10 @@ impl Sample {
 
     pub fn is_possible(&self, config: &Sample) -> bool {
         self.red <= config.red && self.green <= config.green && self.blue <= config.blue
+    }
+
+    pub fn power(&self) -> u32 {
+        self.red * self.green * self.blue
     }
 }
 
@@ -80,6 +96,8 @@ pub fn game(input: &str) -> IResult<&str, Game> {
 
 #[cfg(test)]
 mod tests {
+
+    use nom::Finish;
 
     use crate::day2::{color_count, game, game_id, sample, sample_list, Game, Sample};
 
@@ -141,5 +159,14 @@ mod tests {
                 }
             ))
         );
+    }
+
+    #[test]
+    fn test_lower_bound() {
+        let game = game("Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green")
+            .finish()
+            .unwrap()
+            .1;
+        assert_eq!(game.lower_bound(), Sample::new(4, 2, 6));
     }
 }
