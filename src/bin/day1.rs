@@ -1,7 +1,10 @@
 fn main() {
     let input = include_str!("../../data/dec1.txt");
-    let num = part_two(input);
-    println!("Answer for Day 1 part 2 is {num}");
+    let part1 = part_one(input);
+    let part2 = part_two(input);
+    println!("Answer for Day 1");
+    println!("\tpart 1: {part1}");
+    println!("\tpart 2: {part2}");
 }
 
 fn part_one(input: &str) -> u32 {
@@ -24,7 +27,6 @@ fn part_two(input: &str) -> u32 {
         .map(parse_line)
         .map(|v| {
             let num = 10 * *v.first().unwrap() + *v.last().unwrap();
-            println!(" -> {}", num);
             num
         })
         .sum()
@@ -42,7 +44,6 @@ fn parse_line(input: &str) -> Vec<u32> {
             digits.push(next.0.unwrap());
         }
     }
-    print!("{} -> {:?}", input, digits);
     digits
 }
 

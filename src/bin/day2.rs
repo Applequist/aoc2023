@@ -2,8 +2,9 @@ use aoc2023::day2::{game, Sample};
 
 fn main() {
     let input = include_str!("../../data/dec2.txt");
-    let num = part_one(input);
-    println!("Answer for Day 2 part 1 is {num}");
+    let part1 = part_one(input);
+    println!("Answer for Day 2:");
+    println!("\tpart1: {part1}");
 }
 
 fn part_one(input: &str) -> u32 {
