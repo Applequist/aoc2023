@@ -12,19 +12,25 @@ pub struct Card {
     id: u16,
     winnings: Vec<u16>,
     numbers: Vec<u16>,
+    pub matching: u16,
 }
 
 impl Card {
+    pub fn new(id: u16, winnings: Vec<u16>, numbers: Vec<u16>) -> Self {
+        let matching = numbers.iter().filter(|n| winnings.contains(n)).count() as u16;
+        Self {
+            id,
+            winnings,
+            numbers,
+            matching,
+        }
+    }
+
     pub fn value(&self) -> u16 {
-        let pow = self
-            .numbers
-            .iter()
-            .filter(|n| self.winnings.contains(n))
-            .count();
-        if pow == 0 {
+        if self.matching == 0 {
             0
         } else {
-            2_u16.pow((pow - 1) as u32)
+            2_u16.pow((self.matching - 1) as u32)
         }
     }
 }
@@ -39,11 +45,7 @@ pub fn card(input: &str) -> IResult<&str, Card> {
         space1,
         number_list,
     ))
-    .map(|(id, _, _, winnings, _, _, numbers)| Card {
-        id,
-        winnings,
-        numbers,
-    })
+    .map(|(id, _, _, winnings, _, _, numbers)| Card::new(id, winnings, numbers))
     .parse(input)
 }
 
@@ -67,11 +69,11 @@ mod tests {
             card("Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53")
                 .unwrap()
                 .1,
-            Card {
-                id: 1,
-                winnings: vec![41, 48, 83, 86, 17],
-                numbers: vec![83, 86, 6, 31, 17, 9, 48, 53],
-            }
+            Card::new(
+                1,
+                vec![41, 48, 83, 86, 17],
+                vec![83, 86, 6, 31, 17, 9, 48, 53]
+            )
         );
     }
 
