@@ -48,6 +48,7 @@ fn parse_line(input: &str) -> Vec<u32> {
 }
 
 // This function should return all digits even when digit words are chained, eg 'twoneighthree'
+#[allow(clippy::manual_strip)]
 fn find_next_digit(input: &str) -> (Option<u32>, Option<&str>) {
     if input.is_empty() {
         (None, None)

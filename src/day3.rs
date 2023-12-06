@@ -7,103 +7,112 @@
 //! To avoid summing the number more than once if it is adjacent to more than one symbols
 //! we first merge the symbols positions of all 3 lines (2 for first and last lines).
 
-use nom::AsChar;
-
+/// A sparse symbol map: for each symbol, it stores the line and column indices (0 to N) in the
+/// input.
 #[derive(Debug, Clone, PartialEq)]
-pub struct LineIndex {
-    pub symbols: Vec<usize>,
-    pub numbers: Vec<((usize, usize), u32)>,
+pub struct SymbolMap {
+    symbols: Vec<(usize, usize)>,
 }
 
-impl LineIndex {
-    pub fn adjacent_sym(&self, range: (usize, usize)) -> bool {
-        let min = if range.0 == 0 { 0 } else { range.0 - 1 };
-        let max = range.1 + 1;
-        let r = min..=max;
-        println!("Has {:?} symbol in [{}, {}]", self, min, max);
-        self.symbols.iter().any(|ix| r.contains(ix))
+impl SymbolMap {
+    pub fn parse(input: &str) -> Self {
+        let symbols = input
+            .lines()
+            .enumerate()
+            .flat_map(|(r, l)| {
+                println!("Extracting symbols from line {r}: '{l}'");
+                l.chars()
+                    .enumerate()
+                    .filter_map(|(c, a)| {
+                        if a != '.' && !a.is_ascii_digit() {
+                            println!("\tsym '{a}' at ({r}, {c})");
+                            Some((r, c))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        SymbolMap { symbols }
     }
 
-    pub fn part_numbers<'a>(&'a self, sym: &'a [usize]) -> impl Iterator<Item = u32> + 'a {
-        self.numbers.iter().filter_map(|((s, e), n)| {
-            let min = if *s == 0 { 0 } else { *s - 1 };
-            let max = *e + 1;
-            let rng = min..=max;
-            if sym.iter().any(|ix| rng.contains(ix)) {
-                Some(*n)
-            } else {
-                None
+    pub fn query(&self, rows: (usize, usize), columns: (usize, usize)) -> Vec<(usize, usize)> {
+        self.symbols
+            .iter()
+            .filter(|(r, c)| *r >= rows.0 && *r <= rows.1 && *c >= columns.0 && *c <= columns.1)
+            .cloned()
+            .collect()
+    }
+}
+
+pub fn numbers(input: &str) -> Vec<(usize, (usize, usize), u64)> {
+    input
+        .lines()
+        .enumerate()
+        .flat_map(|(r, l)| {
+            println!("Extracting numbers from line {r}: '{l}'");
+            let mut numbers = vec![];
+            let mut start = None;
+            for (c, a) in l.chars().enumerate() {
+                if start.is_none() {
+                    if a.is_ascii_digit() {
+                        start = Some(c);
+                    }
+                } else if !a.is_ascii_digit() {
+                    let start_ix = start.unwrap();
+                    start = None;
+                    let num = l[start_ix..c].parse::<u64>().unwrap();
+                    numbers.push((r, (start_ix, c - 1), num));
+                    let s = if start_ix == 0 { 0 } else { start_ix - 1 };
+                    println!("\tnum {} ('{}')", num, &l[s..=c]);
+                } else {
+                    continue;
+                }
             }
+            if let Some(s) = start {
+                let num = l[s..].parse::<u64>().unwrap();
+                numbers.push((r, (s, l.len() - 1), num));
+                let ctx_s = if s == 0 { 0 } else { s - 1 };
+                println!("\tnum {} ('{}')", num, &l[ctx_s..]);
+            }
+            numbers
         })
-    }
-}
-
-pub fn parse_line(input: &str) -> LineIndex {
-    let mut symbols = vec![];
-    let mut numbers = vec![];
-    let mut start = None;
-    for (ix, c) in input.chars().enumerate() {
-        if c.is_dec_digit() && start.is_none() {
-            start = Some(ix);
-        } else if c.is_dec_digit() && start.is_some() {
-            continue;
-        } else if !c.is_dec_digit() && start.is_some() {
-            let start_ix = start.unwrap();
-            start = None;
-            let num = input[start_ix..ix].parse::<u32>().unwrap();
-            numbers.push(((start_ix, ix - 1), num));
-            if c != '.' {
-                symbols.push(ix);
-            }
-        } else if c != '.' {
-            symbols.push(ix);
-        }
-    }
-    LineIndex { symbols, numbers }
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::day3::{parse_line, LineIndex};
+    use crate::day3::{numbers, SymbolMap};
 
     #[test]
-    fn test_parse_line() {
+    fn test_symbolmap() {
+        let input = include_str!("../data/dec3_sample.txt");
         assert_eq!(
-            parse_line("467..114.."),
-            LineIndex {
-                symbols: vec![],
-                numbers: vec![((0, 2), 467), ((5, 7), 114)]
+            SymbolMap::parse(input),
+            SymbolMap {
+                symbols: vec![(1, 3), (3, 6), (4, 3), (5, 5), (8, 3), (8, 5)]
             }
         );
-
-        assert_eq!(
-            parse_line("617*......"),
-            LineIndex {
-                symbols: vec![3],
-                numbers: vec![((0, 2), 617)],
-            }
-        )
     }
 
     #[test]
-    fn test_adjacent_sym() {
-        let line_index = parse_line("617*......");
-
-        assert!(line_index.adjacent_sym((0, 2)));
-        assert!(line_index.adjacent_sym((3, 3)));
-        assert!(line_index.adjacent_sym((4, 6)));
-        assert!(!line_index.adjacent_sym((5, 7)));
-    }
-
-    #[test]
-    fn test_part_numbers() {
-        let line_index = parse_line("617*...54..");
-        let next_index = parse_line("....../....");
-        let mut all_sym = line_index.symbols.clone();
-        all_sym.extend(next_index.symbols);
+    fn test_numbers() {
+        let input = include_str!("../data/dec3_sample.txt");
         assert_eq!(
-            line_index.part_numbers(&all_sym).collect::<Vec<_>>(),
-            &[617, 54]
+            numbers(input),
+            vec![
+                (0, (0, 2), 467),
+                (0, (5, 7), 114),
+                (2, (2, 3), 35),
+                (2, (6, 8), 633),
+                (4, (0, 2), 617),
+                (5, (7, 8), 58),
+                (6, (2, 4), 592),
+                (7, (6, 8), 755),
+                (9, (1, 3), 664),
+                (9, (5, 7), 598),
+            ]
         );
     }
 }

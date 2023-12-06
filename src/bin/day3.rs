@@ -1,29 +1,31 @@
-use aoc2023::day3::parse_line;
+use aoc2023::day3::{numbers, SymbolMap};
 
 fn main() {
     let input = include_str!("../../data/dec3.txt");
-    let indexes: Vec<_> = input.lines().map(parse_line).collect();
-    let mut sum = 0;
+    let symbols = SymbolMap::parse(input);
+    let num = numbers(input);
 
-    // First line
-    let mut all_sym = indexes[0].symbols.clone();
-    all_sym.extend(&indexes[1].symbols);
-    sum += indexes[0].part_numbers(&all_sym).sum::<u32>();
-
-    for ix in 1..indexes.len() - 1 {
-        let mut all_sym = indexes[ix - 1].symbols.clone();
-        all_sym.extend(&indexes[ix].symbols);
-        all_sym.extend(&indexes[ix + 1].symbols);
-        sum += indexes[ix].part_numbers(&all_sym).sum::<u32>();
-    }
-
-    // Last line
-    let mut all_sym = indexes[indexes.len() - 2].symbols.clone();
-    all_sym.extend(&indexes[indexes.len() - 1].symbols);
-    sum += indexes[indexes.len() - 1]
-        .part_numbers(&all_sym)
-        .sum::<u32>();
-
-    println!("Answer for Day 3");
-    println!("\tPart 1: {sum}");
+    let lines: Vec<_> = input.lines().collect();
+    let (line_count, col_count) = (lines.len(), lines.iter().map(|s| s.len()).max().unwrap());
+    let sum: u64 = num
+        .iter()
+        .filter_map(|(r, (s, e), n)| {
+            let min_row = if *r == 0 { 0 } else { *r - 1 };
+            let max_row = if *r == line_count - 1 { *r } else { *r + 1 };
+            let min_col = if *s == 0 { 0 } else { *s - 1 };
+            let max_col = if *e == col_count - 1 { *e } else { *e + 1 };
+            let symbols = symbols.query((min_row, max_row), (min_col, max_col));
+            if !symbols.is_empty() {
+                // println!("PART NUMBER: {n}");
+                Some(n)
+            } else {
+                println!("Not a part number: line {} number {}", r + 1, n);
+                (min_row..=max_row).for_each(|r| {
+                    println!("{}", &lines[r][min_col..=max_col]);
+                });
+                None
+            }
+        })
+        .sum();
+    println!("sum = {sum}");
 }
